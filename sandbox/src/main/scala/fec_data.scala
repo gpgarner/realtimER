@@ -21,10 +21,7 @@ import org.apache.kafka.common._
 import org.apache.spark.sql.streaming.ProcessingTime
 import org.apache.spark.ml.feature.NGram
 import java.sql.{Array=>SQLArray,_}
-<<<<<<< HEAD
 import org.apache.spark.ml.Pipeline
-=======
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
 
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg._
@@ -147,32 +144,18 @@ object FileStreamExample {
          .format("csv")
          .option("header", "true") //reading the headers
          .option("mode", "DROPMALFORMED")
-<<<<<<< HEAD
          .load("hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/base_unique2.csv")
-=======
-         .load("hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/base_unique3.csv")
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
 
     val dfGroundTruthMod = dfGroundTruth
          .withColumn("NAME",myNameFunc(dfGroundTruth("NAME")))
          .withColumn("CITY",myCityFunc(dfGroundTruth("CITY")))
          .select("NAME","CITY","STATE","ZIP_CODE")
-<<<<<<< HEAD
     
-=======
-         .withColumn("concatString", concat($"NAME"))
-         //.withColumn("concatString", concat($"NAME",lit(" "),$"CITY",lit(" "),$"STATE",lit(" "),$"ZIP_CODE"))
-    
-    dfGroundTruthMod.show()
-    dfGroundTruthMod.printSchema
-   
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
     def splitFunc: (String => Array[String]) = {s => s.split("")}
     val mySplitFunc = udf(splitFunc)
     def stringFunc: (mutable.WrappedArray[String] => String) = {s => s.mkString("").replace("   "," ").replace("  ", " ")}
     val myStringFunc = udf(stringFunc)
 
-<<<<<<< HEAD
     val tokenizer = new RegexTokenizer().setPattern("").setInputCol("NAME").setMinTokenLength(1).setOutputCol("tokens")
     val ngram = new NGram().setN(3).setInputCol("tokens").setOutputCol("ngrams")
     val vectorizer = new HashingTF().setInputCol("ngrams").setOutputCol("features")
@@ -186,43 +169,6 @@ object FileStreamExample {
     val mh = new MinHashLSH().setNumHashTables(200).setInputCol("features").setOutputCol("hashValues")
     val model = mh.fit(vectorizedDf) 
     
-=======
-    val ngrammable = dfGroundTruthMod
-        .withColumn("NGRAM_NAME",mySplitFunc($"concatString"))
-
-    val ngram = new NGram().setN(3).setInputCol("NGRAM_NAME").setOutputCol("ngrams")
-    val ngramDataFrame = ngram.transform(ngrammable)
-    
-    val ngramDataFrameStr = ngramDataFrame.withColumn("ngramString", myStringFunc($"ngrams"))
-    
-    ngramDataFrameStr.select("ngramString").show()
-    
-    val tokenizer = new Tokenizer().setInputCol("ngramString").setOutputCol("grams")
-    val gramsDf = tokenizer.transform(ngramDataFrameStr)
-    
-    val vocabSize = 1000000
-    //val cvModel: CountVectorizerModel = new CountVectorizer().setInputCol("grams").setOutputCol("features").setVocabSize(vocabSize).setMinDF(10).fit(gramsDf)
-
-    val cvModel = new HashingTF().setInputCol("grams").setOutputCol("features")
-    val isNoneZeroVector = udf({v: Vector => v.numNonzeros > 0}, DataTypes.BooleanType)
-
-    /*dfGroundTruth.unpersist()
-    dfGroundTruthMod.unpersist()
-    ngrammable.unpersist()
-    ngramDataFrame.unpersist()
-    ngramDataFrameStr.unpersist()
-    gramsDf.unpersist()*/
-
-    val vectorizedDf = cvModel.transform(gramsDf).filter(isNoneZeroVector(col("features"))).select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
-    vectorizedDf.show()
-    vectorizedDf.printSchema
-    val mh = new MinHashLSH().setNumHashTables(3).setInputCol("features").setOutputCol("hashValues")
-    val model = mh.fit(vectorizedDf) 
-    model.transform(vectorizedDf).select("hashValues").show(false)
-    
-    val threshold = 0.2
-    //model.approxSimilarityJoin(vectorizedDf, vectorizedDf, threshold).filter("distCol != 0").show()
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
     //create stream from kafka topic data
@@ -231,11 +177,7 @@ object FileStreamExample {
 	.format("kafka")
  	.option("kafka.bootstrap.servers", "18.205.181.166:9092")
  	.option("subscribe", "datatwo")
-<<<<<<< HEAD
         .option("maxOffsetsPerTrigger",1000)
-=======
-        .option("maxOffsetsPerTrigger",2000)
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
         .load()
         //.option("maxOffsetsPerTrigger",1000)
     
@@ -269,10 +211,6 @@ object FileStreamExample {
       .withColumn("TRANSACTION_DT",to_date($"TRANSACTION_DT", "MMddyyyy").alias("date"))
       .withColumn("CITYSTATE", concat($"CITY", lit(" "), $"STATE"))
       .withColumn("concatString",concat($"NAME"))
-<<<<<<< HEAD
-=======
-      //.withColumn("concatString", concat($"NAME",lit(" "),$"CITY",lit(" "),$"STATE",lit(" "),$"ZIP_CODE"))
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
   
     /*dfFilter0.unpersist()
     dfAlter1.unpersist()
@@ -282,35 +220,10 @@ object FileStreamExample {
     //  .filter(myCityNoExistFunc($"CITYSTATE"))
     //val dfCityExists = dfAlter3
     //  .filter(myCityExistFunc($"CITYSTATE"))
-<<<<<<< HEAD
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
     val vectorizedDf0 = model0.transform(dfAlter3).filter(isNoneZeroVector(col("features"))).select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
-=======
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-    val ngrammable0 = dfAlter3
-        .withColumn("NGRAM_NAME",mySplitFunc($"concatString"))
-    val ngram0 = new NGram().setN(3).setInputCol("NGRAM_NAME").setOutputCol("ngrams")
-    val ngramDataFrame0 = ngram.transform(ngrammable0)
-    val ngramDataFrameStr0 = ngramDataFrame0.withColumn("ngramString", myStringFunc($"ngrams"))
-    val tokenizer0 = new Tokenizer().setInputCol("ngramString").setOutputCol("grams")
-    val gramsDf0 = tokenizer0.transform(ngramDataFrameStr0)
-    
-    val vectorizedDf0 = cvModel.transform(gramsDf0).filter(isNoneZeroVector(col("features"))).select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
-    
-    /*ngrammable0.unpersist()
-    ngramDataFrame0.unpersist()
-    ngramDataFrameStr0.unpersist()
-    gramsDf0.unpersist()*/
- 
-    //val mh0 = new MinHashLSH().setNumHashTables(3).setInputCol("features").setOutputCol("hashValues")
-
-    
-    //model.approxSimilarityJoin(vectorizedDf, vectorizedDf0, threshold).filter("distCol != 0").show()
-
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -323,11 +236,7 @@ object FileStreamExample {
     val dbHashed = model.transform(vectorizedDf)
     val qHashed = model.transform(vectorizedDf0)
 
-<<<<<<< HEAD
     val vectorizedQUERY = model.approxSimilarityJoin(dbHashed,qHashed, 0.3).filter("distCol != 0")
-=======
-    val vectorizedQUERY = model.approxSimilarityJoin(dbHashed,qHashed, threshold).filter("distCol != 0")
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
 
     val DF2 = vectorizedQUERY
       .withColumn("NAME_STREAM", col("datasetA.NAME"))
@@ -356,24 +265,14 @@ object FileStreamExample {
       .outputMode("update")
       .option("checkpointLocation","hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/checkpoint0")
       .start()
-<<<<<<< HEAD
     val query2 = dfAlter3.select("NAME","CITY","STATE","ZIP_CODE").distinct
-=======
-    query.awaitTermination()
-    /*val query2 = dfAlter3.select("NAME","CITY","STATE","ZIP_CODE").distinct
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
       .writeStream
       .foreach(writerUnique)
       .outputMode("update")
       .option("checkpointLocation","hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/checkpoint1")
-<<<<<<< HEAD
       .start()
     query.awaitTermination()
     query2.awaitTermination()
-=======
-      .start()*/
-    //query2.awaitTermination()
->>>>>>> 813bb63a10bb92b896247e86fae9a619ade9a775
     /*val query0 = dfCityNoExists.select("NAME","CITY","STATE","ZIP_CODE")
       .writeStream
       .foreach(writerNo)

@@ -39,7 +39,7 @@ object FileStreamExample {
       .getOrCreate()
 
     import sparkSession.implicits._
-    sparkSession.conf.set("spark.sql.shuffle.partitions", 200)
+    sparkSession.conf.set("spark.sql.shuffle.partitions", 500)
     /////////////////////////////////////////////////////////////////////////////////////////////////////////    
  
     class  JDBCSink(url:String, user:String, pwd:String, dbase: String) extends org.apache.spark.sql.ForeachWriter[org.apache.spark.sql.Row] {
@@ -144,7 +144,7 @@ object FileStreamExample {
          .format("csv")
          .option("header", "true") //reading the headers
          .option("mode", "DROPMALFORMED")
-         .load("hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/base_unique2.csv")
+         .load("hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/base_unique4.csv")
 
     val dfGroundTruthMod = dfGroundTruth
          .withColumn("NAME",myNameFunc(dfGroundTruth("NAME")))
@@ -159,15 +159,15 @@ object FileStreamExample {
     val tokenizer = new RegexTokenizer().setPattern("").setInputCol("NAME").setMinTokenLength(1).setOutputCol("tokens")
     val ngram = new NGram().setN(3).setInputCol("tokens").setOutputCol("ngrams")
     val vectorizer = new HashingTF().setInputCol("ngrams").setOutputCol("features")
-   
     val pipeline = new Pipeline().setStages(Array(tokenizer, ngram, vectorizer))
     val isNoneZeroVector = udf({v: Vector => v.numNonzeros > 0}, DataTypes.BooleanType)
 
-    val model0 = pipeline.fit(dfGroundTruthMod)
-    val vectorizedDf = model0.transform(dfGroundTruthMod).filter(isNoneZeroVector(col("features"))).select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
+    val modelPipe = pipeline.fit(dfGroundTruthMod)
+    val vectorizedDf = model0.transform().filter(isNoneZeroVector(col("features")))
+        .select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
 
-    val mh = new MinHashLSH().setNumHashTables(200).setInputCol("features").setOutputCol("hashValues")
-    val model = mh.fit(vectorizedDf) 
+    val mh = new MinHashLSH().setNumHashTables(10).setInputCol("features").setOutputCol("hashValues")
+    val model = mh.fit(vectorizedDF) 
     
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -177,7 +177,7 @@ object FileStreamExample {
 	.format("kafka")
  	.option("kafka.bootstrap.servers", "18.205.181.166:9092")
  	.option("subscribe", "datatwo")
-        .option("maxOffsetsPerTrigger",1000)
+        .option("maxOffsetsPerTrigger",1200)
         .load()
         //.option("maxOffsetsPerTrigger",1000)
     
@@ -223,8 +223,15 @@ object FileStreamExample {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-    val vectorizedDf0 = model0.transform(dfAlter3).filter(isNoneZeroVector(col("features"))).select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
+    val vectorizedDF2 = modelPipe.transform(ngramDF2).filter(isNoneZeroVector(col("features")))
+       .select(col("NAME"), col("CITY"), col("STATE"), col("ZIP_CODE"), col("features"))
     
+
+    val dbHashed = model.transform(vectorizedDF)
+    val qHashed = model.transform(vectorizedDF2)
+
+    val vectorizedQUERY = model.approxSimilarityJoin(dbHashed,qHashed, 0.3).filter("distCol != 0")
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     val url="jdbc:postgresql://postgresgpgsql.c0npzf7zoofq.us-east-1.rds.amazonaws.com:5432/postgresMVP"
@@ -233,11 +240,6 @@ object FileStreamExample {
     val writer = new JDBCSink(url, user, pwd, "potentialDuplicates")
     val writerUnique = new JDBCSink2(url, user, pwd, "uniqueContribs")
     
-    val dbHashed = model.transform(vectorizedDf)
-    val qHashed = model.transform(vectorizedDf0)
-
-    val vectorizedQUERY = model.approxSimilarityJoin(dbHashed,qHashed, 0.3).filter("distCol != 0")
-
     val DF2 = vectorizedQUERY
       .withColumn("NAME_STREAM", col("datasetA.NAME"))
       .withColumn("CITY_STREAM", col("datasetA.CITY"))
@@ -252,27 +254,29 @@ object FileStreamExample {
       .withColumn("LEV_DIST", levenshtein(col("CITY_STREAM"),col("CITY_CORPUS")))
       .filter(col("LEV_DIST")<3)
 
-    /*val query = DF3
+    val query = DF3
       .writeStream
       .format("console")
       .outputMode("update")
       .start()
-    query.awaitTermination()*/
+    query.awaitTermination()
+    
+    
 
-    val query = DF3.select("NAME_STREAM","CITY_STREAM","STATE_STREAM","NAME_CORPUS","CITY_CORPUS","STATE_CORPUS","distCol") 
+    /*val query = DF3.select("NAME_STREAM","CITY_STREAM","STATE_STREAM","NAME_CORPUS","CITY_CORPUS","STATE_CORPUS","distCol") 
       .writeStream
       .foreach(writer)
       .outputMode("update")
       .option("checkpointLocation","hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/checkpoint0")
-      .start()
-    val query2 = dfAlter3.select("NAME","CITY","STATE","ZIP_CODE").distinct
+      .start()*/
+    /*val query2 = dfAlter3.select("NAME","CITY","STATE","ZIP_CODE").distinct
       .writeStream
       .foreach(writerUnique)
       .outputMode("update")
       .option("checkpointLocation","hdfs://ec2-18-205-181-166.compute-1.amazonaws.com:9000/user/checkpoint1")
       .start()
-    query.awaitTermination()
-    query2.awaitTermination()
+    query.awaitTermination()*/
+    //query.awaitTermination()
     /*val query0 = dfCityNoExists.select("NAME","CITY","STATE","ZIP_CODE")
       .writeStream
       .foreach(writerNo)

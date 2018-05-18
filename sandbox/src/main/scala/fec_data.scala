@@ -163,7 +163,7 @@ object FileStreamExample {
     val isNoneZeroVector = udf({v: Vector => v.numNonzeros > 0}, DataTypes.BooleanType)
 
     val modelPipe = pipeline.fit(dfGroundTruthMod)
-    val vectorizedDf = model0.transform().filter(isNoneZeroVector(col("features")))
+    val vectorizedDf = modelPipe.transform().filter(isNoneZeroVector(col("features")))
         .select(col("NAME"),col("CITY"),col("STATE"),col("ZIP_CODE"), col("features"))
 
     val mh = new MinHashLSH().setNumHashTables(10).setInputCol("features").setOutputCol("hashValues")

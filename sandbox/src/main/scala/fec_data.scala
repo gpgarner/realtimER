@@ -225,7 +225,6 @@ object FileStreamExample {
 
     val vectorizedDF2 = modelPipe.transform(dfFilter3).filter(isNoneZeroVector(col("features")))
        .select(col("NAME"), col("CITY"), col("STATE"), col("ZIP_CODE"), col("features"))
-    
 
     val dbHashed = model.transform(vectorizedDF)
     val qHashed = model.transform(vectorizedDF2)

@@ -223,7 +223,7 @@ object FileStreamExample {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-    val vectorizedDF2 = modelPipe.transform(ngramDF2).filter(isNoneZeroVector(col("features")))
+    val vectorizedDF2 = modelPipe.transform(dfFilter3).filter(isNoneZeroVector(col("features")))
        .select(col("NAME"), col("CITY"), col("STATE"), col("ZIP_CODE"), col("features"))
     
 

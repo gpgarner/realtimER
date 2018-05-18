@@ -195,31 +195,21 @@ object FileStreamExample {
       .filter(col("TRANSACTION_AMT")!=="")
       .filter(col("OTHER_ID")==="")
 
-    val dfAlter1 = dfFilter0
+    val dfFilter1 = dfFilter0
       .withColumn("ZIP_CODE", myZipFunc(dfFilter0("ZIP_CODE")))
       .withColumn("YEAR", myDateFunc(dfFilter0("TRANSACTION_DT")).cast(IntegerType))
       .withColumn("TRANSACTION_AMT",dfFilter0("TRANSACTION_AMT").cast(IntegerType))
       .withColumn("NAME",myNameFunc(dfFilter0("NAME")))
       .withColumn("CITY",myCityFunc(dfFilter0("CITY")))
 
-   val dfAlter2 = dfAlter1
+   val dfFilter2 = dfFilter1
       .filter(col("YEAR")<=2018)
       .filter(col("YEAR")>=1980)
 
-   val dfAlter3 = dfAlter2
+   val dfFilter3 = dfFilter2
       .withColumn("timestamp",to_timestamp($"TRANSACTION_DT", "MMddyyyy"))
       .withColumn("TRANSACTION_DT",to_date($"TRANSACTION_DT", "MMddyyyy").alias("date"))
       .withColumn("CITYSTATE", concat($"CITY", lit(" "), $"STATE"))
-      .withColumn("concatString",concat($"NAME"))
-  
-    /*dfFilter0.unpersist()
-    dfAlter1.unpersist()
-    dfAlter2.unpersist()*/  
- 
-    //val dfCityNoExists = dfAlter3
-    //  .filter(myCityNoExistFunc($"CITYSTATE"))
-    //val dfCityExists = dfAlter3
-    //  .filter(myCityExistFunc($"CITYSTATE"))
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 

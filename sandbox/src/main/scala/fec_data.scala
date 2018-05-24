@@ -225,7 +225,7 @@ object FileStreamExample {
 
     val url="jdbc:postgresql://postgresgpgsql.c0npzf7zoofq.us-east-1.rds.amazonaws.com:5432/postgresMVP"
     val user="gpgarner8324"
-    val pwd="carmenniove84!"
+    val pwd=PASSWORD
     val writer = new JDBCSink(url, user, pwd, "potentialDuplicates")
     val writerUnique = new JDBCSink2(url, user, pwd, "uniqueContribs")
     
